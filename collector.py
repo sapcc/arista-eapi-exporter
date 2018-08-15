@@ -1,6 +1,5 @@
 from prometheus_client.core import GaugeMetricFamily
 
-import jsonrpclib
 import pyeapi
 import ssl
 import socket
@@ -11,8 +10,8 @@ import errno
 class AristaMetricsCollector(object):
     def __init__(self, config, hostname, exclude=list):
         self._exclude = exclude
-        self._username = config['username']
-        self._password = config['password']
+        self._username = os.environ['ARISTA_USERNAME'] or config['username']
+        self._password = os.environ['ARISTA_PASSWORD'] or config['password']
         self._protocol = config['protocol']
         self._timeout = config['timeout']
         self._hostname = hostname
