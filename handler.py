@@ -15,19 +15,19 @@ class metricHandler:
 
     def on_get(self, req, resp):
 
-        self._hostname = req.get_param("hostname")
+        self._target = req.get_param("target")
 
         resp.set_header('Content-Type', CONTENT_TYPE_LATEST)
-        if not self._hostname:
-            msg = "No hostname provided!"
+        if not self._target:
+            msg = "No target parameter provided!"
             logging.error(msg)
             resp.status = falcon.HTTP_400
             resp.body = msg
 
         try:
-            socket.gethostbyname(self._hostname)
+            socket.gethostbyname(self._target)
         except socket.gaierror as excptn:
-            msg = "Hostname does not exist in DNS: {0}".format(excptn)
+            msg = "Target does not exist in DNS: {0}".format(excptn)
             logging.error(msg)
             resp.status = falcon.HTTP_400
             resp.body = msg
@@ -36,7 +36,7 @@ class metricHandler:
             registry = AristaMetricsCollector(
                 self._config,
                 exclude=self._exclude,
-                hostname=self._hostname
+                target=self._target
                 )
 
             collected_metric = generate_latest(registry)
