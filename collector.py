@@ -12,7 +12,7 @@ class AristaMetricsCollector(object):
         self._exclude = exclude
         self._username = os.environ['ARISTA_USERNAME'] or config['username']
         self._password = os.environ['ARISTA_PASSWORD'] or config['password']
-        self._protocol = config['protocol']
+        self._protocol = config['protocol'] or "https"
         self._timeout = config['timeout']
         self._target = target
         self._labels = {}
