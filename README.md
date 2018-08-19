@@ -24,11 +24,13 @@ There is also a docker file available to create a docker container to run the ex
 
 * The credentials for login to the switches can either be added to the config.yaml file or passed via environment variables ARISTA_USERNAME and ARISTA_PASSWORD. The environment overwrites the settings in the config file
 
-* The logging level can be specified in the config file or overwritten via environment variable
+* The **loglevel** can be specified in the config file. If omitted the default level is `INFO`
 
 * The **timeout** parameter specifies the amount of time to wait for an answer from the switch.
 
-* With the **exclude** parameter you can filter the output of the exporter. In following example some of the tables are excluded.
+* With the **exclude** parameter you can filter the output of the exporter. In the following example some of the tables are excluded.
+
+* The **job** parameter specifies the Prometheus job that will be passed as label.
 
 ### Example of a config file
 
