@@ -22,7 +22,7 @@ There is also a docker file available to create a docker container to run the ex
 
 * The **listen_port** is providing the port on which the exporter is waiting to receive calls.
 
-* The credentials for login to the switches can either be added to the config.yaml file or passed via environment variables ARISTA_USERNAME and ARISTA_PASSWORD. The environment overwrites the settings in the config file
+* The credentials for login to the switches can either be added to the config.yaml file or passed via environment variables `ARISTA_USERNAME` and `ARISTA_PASSWORD`. The environment overwrites the settings in the config file
 
 * The **loglevel** can be specified in the config file. If omitted the default level is `INFO`
 
