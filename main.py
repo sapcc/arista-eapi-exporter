@@ -15,12 +15,7 @@ def falcon_app(port=9200, addr='0.0.0.0', exclude=list):
     logger.info("Listening on IP %s", ip)
     api = falcon.API()
     api.add_route(
-        '/metrics',
-        metricHandler(exclude=exclude, config=config)
-    )
-
-    api.add_route(
-        '/info',
+        '/arista',
         metricHandler(exclude=exclude, config=config)
     )
 
