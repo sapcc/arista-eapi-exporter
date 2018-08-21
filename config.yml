@@ -6,4 +6,4 @@ loglevel: INFO
 #loglevel: DEBUG
 timeout: 20
 exclude: ['NextHop', 'LPM', 'Host', 'MAC', 'VFP']
-job: baremetal/arista
+job: 'baremetal/arista'
