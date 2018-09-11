@@ -14,10 +14,10 @@ class AristaMetricsCollector(object):
         self._password = os.environ['ARISTA_PASSWORD'] or config['password']
         self._protocol = config['protocol'] or "https"
         self._timeout = config['timeout']
+        self._job = config['job']
         self._target = target
         self._labels = {}
         self._get_labels()
-        self._job = config['job']
 
     def connect_switch(self, command):
         # switch off certificate validation
@@ -58,11 +58,11 @@ class AristaMetricsCollector(object):
                 for entry in switch_tcam['result'][0]['tables']:
                     # add the chip and feature names as labels to the switch info labels
                     labels = {}
-                    labels = ({'chip':entry["chip"], 'feature':entry["feature"]})
+                    labels = ({'table': entry['table'], 'chip':entry["chip"], 'feature':entry["feature"]})
                     if entry['table'] not in self._exclude:
                         logging.debug("Adding: table=%s value=%s labels=%s", entry['table'], entry["usedPercent"], labels)
                         labels.update(self._labels)
-                        metrics.add_sample(entry['table'], value=entry["usedPercent"], labels=labels)
+                        metrics.add_sample('arista_tcam', value=entry["usedPercent"], labels=labels)
                     else:
                         logging.debug("Excluding: table=%s value=%s labels=%s", entry['table'], entry["usedPercent"], labels)
 
