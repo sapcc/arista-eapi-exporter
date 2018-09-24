@@ -8,6 +8,14 @@ Future implementations could easily also gather other data from the switches.
 
 The hostname of the switch has to be passed as **target parameter** in the http call.
 
+## Example Call
+
+if you are logged in to the POD running the exporter you can call
+
+```
+curl http://localhost:9200/arista?target=eu-de-1-asw202-bm001.cc.eu-de-1.cloud.sap
+```
+
 ## Prerequisites and Installation
 
 The exporter was written for Python 3.6 or newer. To install all modules needed you have to run the following command:
