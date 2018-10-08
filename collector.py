@@ -6,6 +6,8 @@ import socket
 import logging
 import os
 import errno
+import json
+import time
 
 class AristaMetricsCollector(object):
     def __init__(self, config, target, exclude=list):
@@ -18,6 +20,7 @@ class AristaMetricsCollector(object):
         self._target = target
         self._labels = {}
         self._switch_up = 0
+        self._responstime = 0
         self._get_labels()
 
 
@@ -32,35 +35,54 @@ class AristaMetricsCollector(object):
 
         connection = pyeapi.connect(transport=self._protocol, host=self._target, username=self._username, password=self._password, timeout=self._timeout)
         logging.info("Connecting to switch %s", self._target)
+
+        data = {
+            "jsonrpc": "2.0",
+            "method": "runCmds",
+            "params": {
+                "format": "json",
+                "timestamps": "true",
+                "autoComplete": "false",
+                "expandAliases": "false",
+                "cmds": [command],
+                "version": 1
+            },
+            "id": "EapiExplorer-1"
+        }
+
         try:
             logging.debug("Running command %s", command) 
-            switch_result = connection.execute([command])
+            switch_result = connection.send(json.dumps(data))
         except socket.timeout as excptn:
-            logging.debug("ERROR: Socket Timeout %s", excptn)
+            logging.error("Socket Timeout %s", excptn)
         finally:
             return switch_result
     
     def _get_labels(self):
 
+        start = time.time()
         # Get the switch info for the labels
         switch_info = self.connect_switch (command="show version")
         if switch_info:
             logging.debug("Received a result from switch %s", self._target)
-            labels_switch = {'job': self._job, 'instance': self._target, 'model': switch_info['result'][0]['modelName'], 'serial': switch_info['result'][0]['serialNumber'], 'mac': switch_info['result'][0]['systemMacAddress']}
+            labels_switch = {'job': self._job, 'instance': self._target, 'model': switch_info['result'][0]['modelName'], 'serial': switch_info['result'][0]['serialNumber'], 'version': switch_info['result'][0]['version']}
             self._switch_up = 1
         else:
             logging.debug("No result received from switch %s", self._target)
-            labels_switch = {'job': self._job, 'instance': self._target}
+            labels_switch = {'job': self._job, 'instance': self._target, 'model': "unknown", 'serial': "unknown"}
             self._switch_up = 0
 
+        end = time.time()
+        self._responstime = end - start
         self._labels.update(labels_switch)
 
     def collect(self):
 
-        up_metrics = GaugeMetricFamily('arista_monitoring_up','Arista Switch Monitoring Up',labels=self._labels)
-        up_metrics.add_sample('arista_up', value=self._switch_up, labels=self._labels)
+        info_metrics = GaugeMetricFamily('arista_monitoring_info','Arista Switch Monitoring',labels=self._labels)
+        info_metrics.add_sample('arista_up', value=self._switch_up, labels=self._labels)
+        info_metrics.add_sample('arista_response', value=self._responstime, labels=self._labels)
         
-        yield up_metrics
+        yield info_metrics
 
         if self._switch_up == 1:
 
