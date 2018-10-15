@@ -8,6 +8,7 @@ import os
 import errno
 import json
 import time
+import re
 
 class AristaMetricsCollector(object):
     def __init__(self, config, target, exclude=list):
@@ -103,8 +104,26 @@ class AristaMetricsCollector(object):
                         logging.debug("Excluding: table=%s value=%s labels=%s", entry['table'], entry["usedPercent"], labels)
 
                 yield tcam_metrics
-
+            
             else:
                 pass
+
+            switch_port_stats = self.connect_switch(command="show interfaces counters rates")
+            regex_pattern = re.compile('.*reserved.*', re.IGNORECASE)
+
+            if switch_port_stats:
+                port_stats_metrics = GaugeMetricFamily('switch_monitoring_ports','Arista Switch Monitoring Port Statistics',labels=self._labels)
+                for port_entry in switch_port_stats['result'][0]['interfaces']:
+                    port_values = switch_port_stats['result'][0]['interfaces'][port_entry]
+                    port_description = port_values['description'].replace("-> ","")
+                    for port_value in port_values:
+                        if port_value != "description" and port_value != 'interval' and not regex_pattern.match(port_description):
+                            labels = {}
+                            labels = ({'port': port_entry, 'stat': port_value, 'description': port_description})
+                            labels.update(self._labels)
+                            logging.debug("Adding: port=%s stat=%s value=%s labels=%s", port_entry, port_value, port_values[port_value], labels)
+                            port_stats_metrics.add_sample('arista_port_stats', value=float(port_values[port_value]), labels=labels)
+
+                yield port_stats_metrics
         else:
             pass
