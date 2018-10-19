@@ -13,8 +13,8 @@ import re
 class AristaMetricsCollector(object):
     def __init__(self, config, target, exclude=list):
         self._exclude = exclude
-        self._username = os.environ['ARISTA_USERNAME'] or config['username']
-        self._password = os.environ['ARISTA_PASSWORD'] or config['password']
+        self._username = os.getenv('ARISTA_USERNAME',config['username'])
+        self._password = os.getenv('ARISTA_PASSWORD',config['password'])
         self._protocol = config['protocol'] or "https"
         self._timeout = config['timeout']
         self._job = config['job']
@@ -54,8 +54,14 @@ class AristaMetricsCollector(object):
         try:
             logging.debug("Running command %s", command) 
             switch_result = connection.send(json.dumps(data))
-        except socket.timeout as excptn:
-            logging.error("Socket Timeout %s", excptn)
+        except pyeapi.eapilib.ConnectionError as pyeapi_connect_except:
+            logging.error("----------------------------------------------")
+            logging.error("PYEAPI Client Connection Exception: %s", pyeapi_connect_except)
+            logging.error("----------------------------------------------")
+        except pyeapi.eapilib.CommandError as pyeapi_command_except:
+            logging.error("----------------------------------------------")
+            logging.error("PYEAPI Client Command Exception: %s", pyeapi_command_except)
+            logging.error("----------------------------------------------")
         finally:
             return switch_result
     
