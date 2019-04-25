@@ -22,6 +22,8 @@ class AristaMetricsCollector(object):
         self._labels = {}
         self._switch_up = 0
         self._responstime = 0
+        self._memtotal = 0
+        self._memused = 0
         self._get_labels()
 
 
@@ -73,6 +75,8 @@ class AristaMetricsCollector(object):
         if switch_info:
             logging.debug("Received a result from switch %s", self._target)
             labels_switch = {'job': self._job, 'instance': self._target, 'model': switch_info['result'][0]['modelName'], 'serial': switch_info['result'][0]['serialNumber'], 'version': switch_info['result'][0]['version']}
+            self._memtotal = switch_info['result'][0]['memTotal']
+            self._memfree = switch_info['result'][0]['memFree']
             self._switch_up = 1
         else:
             logging.debug("No result received from switch %s", self._target)
@@ -85,6 +89,7 @@ class AristaMetricsCollector(object):
 
     def collect(self):
 
+        # Export the up and response metrics
         info_metrics = GaugeMetricFamily('arista_monitoring_info','Arista Switch Monitoring',labels=self._labels)
         info_metrics.add_sample('arista_up', value=self._switch_up, labels=self._labels)
         info_metrics.add_sample('arista_response', value=self._responstime, labels=self._labels)
@@ -92,6 +97,12 @@ class AristaMetricsCollector(object):
         yield info_metrics
 
         if self._switch_up == 1:
+
+            # Export the memory usage data
+            mem_metrics = GaugeMetricFamily('switch_monitoring_memdata','Arista Switch Monitoring Memory Usage Data',labels=self._labels)
+            mem_metrics.add_sample('arista_mem_total', value=self._memtotal, labels=self._labels)
+            mem_metrics.add_sample('arista_mem_used', value=self._memused, labels=self._labels)
+            yield mem_metrics
 
             # Get the tcam usage data
             switch_tcam = self.connect_switch (command="show hardware capacity")
