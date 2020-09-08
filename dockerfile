@@ -18,3 +18,5 @@ COPY *.py /${FOLDERNAME}/
 COPY config.yml /${FOLDERNAME}/
 
 ENTRYPOINT [ "python3", "-u", "./main.py"]
+
+LABEL source_repository="https://github.com/sapcc/arista-eapi-exporter"

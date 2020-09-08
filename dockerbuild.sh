@@ -1,2 +1,7 @@
-docker build . -t hub.global.cloud.sap/monsoon/arista-exporter:v0.2.1
-docker push hub.global.cloud.sap/monsoon/arista-exporter:v0.2.1
+version="v0.2.2"
+
+docker build . -t hub.global.cloud.sap/monsoon/arista-exporter:${version}
+docker push hub.global.cloud.sap/monsoon/arista-exporter:${version}
+
+docker build . -t keppel.eu-de-1.cloud.sap/monsoon/arista-exporter:${version}
+docker push keppel.eu-de-1.cloud.sap/monsoon/arista-exporter:${version}
