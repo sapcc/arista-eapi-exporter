@@ -9,6 +9,7 @@ import errno
 import json
 import time
 import re
+import pprint
 
 class AristaMetricsCollector(object):
     def __init__(self, config, target, exclude=list):
@@ -23,7 +24,7 @@ class AristaMetricsCollector(object):
         self._switch_up = 0
         self._responstime = 0
         self._memtotal = 0
-        self._memused = 0
+        self._memfree = 0
         self._get_labels()
 
 
@@ -56,13 +57,15 @@ class AristaMetricsCollector(object):
         try:
             logging.debug("Running command %s", command) 
             switch_result = connection.send(json.dumps(data))
-        except pyeapi.eapilib.ConnectionError as pyeapi_connect_except:
+        except (pyeapi.eapilib.ConnectionError, socket.timeout) as pyeapi_connect_except:
             logging.error("----------------------------------------------")
             logging.error("PYEAPI Client Connection Exception: %s", pyeapi_connect_except)
+            logging.error("While connecting to switch %s", self._target)
             logging.error("----------------------------------------------")
         except pyeapi.eapilib.CommandError as pyeapi_command_except:
             logging.error("----------------------------------------------")
             logging.error("PYEAPI Client Command Exception: %s", pyeapi_command_except)
+            logging.error("While connecting to switch %s", self._target)
             logging.error("----------------------------------------------")
         finally:
             return switch_result
@@ -98,10 +101,13 @@ class AristaMetricsCollector(object):
 
         if self._switch_up == 1:
 
+            logging.debug("Switch is rechable.")
             # Export the memory usage data
             mem_metrics = GaugeMetricFamily('switch_monitoring_memdata','Arista Switch Monitoring Memory Usage Data',labels=self._labels)
             mem_metrics.add_sample('arista_mem_total', value=self._memtotal, labels=self._labels)
-            mem_metrics.add_sample('arista_mem_used', value=self._memused, labels=self._labels)
+            mem_metrics.add_sample('arista_mem_free', value=self._memfree, labels=self._labels)
+            logging.debug("Exporting metrics arista_mem_total=%s", self._memtotal)
+            logging.debug("Exporting metrics arista_mem_free=%s", self._memfree)
             yield mem_metrics
 
             # Get the tcam usage data
@@ -114,7 +120,7 @@ class AristaMetricsCollector(object):
                     labels = {}
                     labels = ({'table': entry['table'], 'chip':entry["chip"], 'feature':entry["feature"]})
                     if entry['table'] not in self._exclude:
-                        logging.debug("Adding: table=%s value=%s labels=%s", entry['table'], entry["usedPercent"], labels)
+                        #logging.debug("Adding: table=%s value=%s labels=%s", entry['table'], entry["usedPercent"], labels)
                         labels.update(self._labels)
                         tcam_metrics.add_sample('arista_tcam', value=entry["usedPercent"], labels=labels)
                     else:
@@ -138,7 +144,7 @@ class AristaMetricsCollector(object):
                             labels = {}
                             labels = ({'port': port_entry, 'stat': port_value, 'description': port_description})
                             labels.update(self._labels)
-                            logging.debug("Adding: port=%s stat=%s value=%s labels=%s", port_entry, port_value, port_values[port_value], labels)
+                            #logging.debug("Adding: port=%s stat=%s value=%s labels=%s", port_entry, port_value, port_values[port_value], labels)
                             port_stats_metrics.add_sample('arista_port_stats', value=float(port_values[port_value]), labels=labels)
 
                 yield port_stats_metrics
