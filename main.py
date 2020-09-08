@@ -7,12 +7,13 @@ import sys
 import falcon
 from wsgiref import simple_server
 import socket
+import os
 
 
 def falcon_app(port=9200, addr='0.0.0.0', exclude=list):
-    logger.info("Starting Arista eAPI Prometheus Server on Port %s", port)
+    logging.info("Starting Arista eAPI Prometheus Server on Port %s", port)
     ip = socket.gethostbyname(socket.gethostname())
-    logger.info("Listening on IP %s", ip)
+    logging.info("Listening on IP %s", ip)
     api = falcon.API()
     api.add_route(
         '/arista',
@@ -22,15 +23,25 @@ def falcon_app(port=9200, addr='0.0.0.0', exclude=list):
     try:
         httpd = simple_server.make_server(addr, port, api)
     except Exception as e:
-        logger.error("Couldn't start Server:" + str(e))
+        logging.error("Couldn't start Server:" + str(e))
 
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
         httpd.server_close()
-        logger.info("Stopping Arista eAPI Prometheus Server")
+        logging.info("Stopping Arista eAPI Prometheus Server")
 
-    
+def enable_logging():
+    # enable logging
+    logger = logging.getLogger()
+    app_environment = os.getenv('APP_ENV', default="production").lower()
+    if app_environment == "production":
+        logger.setLevel('INFO')
+    else:
+        logger.setLevel('DEBUG')
+    format = '%(asctime)-15s %(process)d %(levelname)s %(filename)s:%(lineno)d %(message)s'
+    logging.basicConfig(stream=sys.stdout, format=format)
+
 if __name__ == '__main__':
     # command line options
     parser = argparse.ArgumentParser()
@@ -41,13 +52,6 @@ if __name__ == '__main__':
     # get the config
     config = YamlConfig(args.config)
 
-    # enable logging
-    logger = logging.getLogger()
-    if config['loglevel']:
-        logger.setLevel(logging.getLevelName(config['loglevel'].upper()))
-    else:
-        logger.setLevel('INFO')
-    format = '%(asctime)-15s %(process)d %(levelname)s %(filename)s:%(lineno)d %(message)s'
-    logging.basicConfig(stream=sys.stdout, format=format)
+    enable_logging()
 
     falcon_app(port=config['listen_port'], exclude=config['exclude'])
