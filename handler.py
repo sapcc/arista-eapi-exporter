@@ -8,6 +8,11 @@ from prometheus_client.exposition import generate_latest
 
 from collector import AristaMetricsCollector
 
+class welcomePage:
+
+    def on_get(self, req, resp):
+        resp.body = '{"message": "This is the Arista eAPI exporter. Use /arista to retrieve metrics."}'
+
 class metricHandler:
     def __init__(self, config, exclude=list):
         self._exclude = exclude
@@ -21,9 +26,8 @@ class metricHandler:
         if not self._target:
             msg = "No target parameter provided!"
             logging.error(msg)
-            resp.status = falcon.HTTP_400
-            resp.body = msg
-
+            raise falcon.HTTPMissingParam('target')
+        
         try:
             socket.gethostbyname(self._target)
         except socket.gaierror as excptn:
