@@ -17,7 +17,7 @@ class AristaMetricsCollector(object):
         self._username = os.getenv('ARISTA_USERNAME',config['username'])
         self._password = os.getenv('ARISTA_PASSWORD',config['password'])
         self._protocol = config['protocol'] or "https"
-        self._timeout = config['timeout']
+        self._timeout = int(os.getenv('TIMEOUT', config['timeout']))
         self._job = config['job']
         self._target = target
         self._labels = {}

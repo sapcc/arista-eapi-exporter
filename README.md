@@ -31,11 +31,11 @@ There is also a docker file available to create a docker container to run the ex
 
 * The **listen_port** is providing the port on which the exporter is waiting to receive calls.
 
-* The credentials for login to the switches can either be added to the config.yaml file or passed via environment variables `ARISTA_USERNAME` and `ARISTA_PASSWORD`. The environment overwrites the settings in the config file
+* The credentials for login to the switches can either be added to the config.yaml file or passed via environment variables `ARISTA_USERNAME` and `ARISTA_PASSWORD`. The environment overwrites the settings in the config file.
 
-* The **loglevel** can be specified in the config file. If omitted the default level is `INFO`
+* The **loglevel** can be specified in the config file. If omitted the default level is `INFO`.
 
-* The **timeout** parameter specifies the amount of time to wait for an answer from the switch.
+* The **timeout** parameter specifies the amount of time to wait for an answer from the switch. It can be defined in config.yaml ir passed via environment variable `TIMEOUT`. The environment overwrites the settings in the config file.
 
 * With the **exclude** parameter you can filter the output of the exporter. In the following example some of the tables are excluded.
 
