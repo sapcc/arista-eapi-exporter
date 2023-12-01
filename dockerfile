@@ -1,4 +1,4 @@
-FROM docker.io/ubuntu:18.04
+FROM keppel.eu-de-1.cloud.sap/ccloud-dockerhub-mirror/library/ubuntu:latest
 
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update \

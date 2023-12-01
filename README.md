@@ -13,7 +13,7 @@ The hostname of the switch has to be passed as **target parameter** in the http 
 
 if you are logged in to the POD running the exporter you can call
 
-```
+```bash
 curl http://localhost:9200/arista?target=eu-de-1-asw202-bm001.cc.eu-de-1.cloud.sap
 ```
 
@@ -43,7 +43,7 @@ There is also a docker file available to create a docker container to run the ex
 
 ### Example of a config file
 
-```text
+```yaml
 listen_port: 9200
 username: <your username>
 password: <your password>
