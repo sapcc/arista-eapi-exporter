@@ -5,11 +5,9 @@ import ssl
 import socket
 import logging
 import os
-import errno
 import json
 import time
 import re
-import pprint
 
 class AristaMetricsCollector(object):
     def __init__(self, config, target, exclude=list):
@@ -20,6 +18,7 @@ class AristaMetricsCollector(object):
         self._timeout = int(os.getenv('TIMEOUT', config['timeout']))
         self._job = config['job']
         self._target = target
+        self._connection = False
         self._labels = {}
         self._switch_up = 0
         self._responstime = 0
@@ -28,17 +27,29 @@ class AristaMetricsCollector(object):
         self._get_labels()
 
 
-    def connect_switch(self, command):
+    def get_connection(self):
         # switch off certificate validation
         ssl._create_default_https_context = ssl._create_unverified_context
+        # set the default timeout
+        logging.debug(f"Setting timeout to {self._timeout}")
+        if not self._connection:
+            logging.info(f"Connecting to switch {self._target}")
+            self._connection = pyeapi.connect(
+                transport=self._protocol,
+                host=self._target,
+                username=self._username,
+                password=self._password,
+                timeout=self._timeout,
+            )
+            # workaround to allow sslv3 ciphers for python =>3.10
+            self._connection.transport._context.set_ciphers('DEFAULT')
+        return self._connection
+    
+    def connect_switch(self, command):
 
         switch_result = ""
 
-        # set the default timeout 
-        logging.debug("setting timeout to %s", self._timeout)
-
-        connection = pyeapi.connect(transport=self._protocol, host=self._target, username=self._username, password=self._password, timeout=self._timeout)
-        logging.info("Connecting to switch %s", self._target)
+        connection = self.get_connection()
 
         data = {
             "jsonrpc": "2.0",
@@ -55,36 +66,39 @@ class AristaMetricsCollector(object):
         }
 
         try:
-            logging.debug("Running command %s", command) 
-            switch_result = connection.send(json.dumps(data))
+            logging.debug(f"{self._target}: Running command {command}") 
+            switch_result = connection.execute([command])
+
         except (pyeapi.eapilib.ConnectionError, socket.timeout) as pyeapi_connect_except:
-            logging.error("----------------------------------------------")
-            logging.error("PYEAPI Client Connection Exception: %s", pyeapi_connect_except)
-            logging.error("While connecting to switch %s", self._target)
-            logging.error("----------------------------------------------")
+            logging.error(f"{self._target}: PYEAPI Client Connection Exception: {pyeapi_connect_except}")
+
         except pyeapi.eapilib.CommandError as pyeapi_command_except:
-            logging.error("----------------------------------------------")
-            logging.error("PYEAPI Client Command Exception: %s", pyeapi_command_except)
-            logging.error("While connecting to switch %s", self._target)
-            logging.error("----------------------------------------------")
+            logging.error(f"{self._target}: PYEAPI Client Command Exception: {pyeapi_command_except}")
+
         finally:
             return switch_result
     
     def _get_labels(self):
+        model   = "unknown"
+        serial  = "unknown"
+        version = "unknown"
 
         start = time.time()
         # Get the switch info for the labels
         switch_info = self.connect_switch (command="show version")
+
         if switch_info:
-            logging.debug("Received a result from switch %s", self._target)
-            labels_switch = {'job': self._job, 'instance': self._target, 'model': switch_info['result'][0]['modelName'], 'serial': switch_info['result'][0]['serialNumber'], 'version': switch_info['result'][0]['version']}
-            self._memtotal = switch_info['result'][0]['memTotal']
-            self._memfree = switch_info['result'][0]['memFree']
+            logging.debug(f"{self._target}: Received a result from switch")
+            model = switch_info['result'][0]['modelName']
+            serial = switch_info['result'][0]['serialNumber']
+            version = switch_info['result'][0]['version']
             self._switch_up = 1
+
         else:
-            logging.debug("No result received from switch %s", self._target)
-            labels_switch = {'job': self._job, 'instance': self._target, 'model': "unknown", 'serial': "unknown"}
+            logging.debug(f"{self._target}: No result received from switch")
             self._switch_up = 0
+
+        labels_switch = {'job': self._job, 'instance': self._target, 'model': model, 'serial': serial, 'version': version}
 
         end = time.time()
         self._responstime = end - start
@@ -101,13 +115,13 @@ class AristaMetricsCollector(object):
 
         if self._switch_up == 1:
 
-            logging.debug("Switch is rechable.")
+            logging.debug(f"{self._target}: Switch is rechable.")
             # Export the memory usage data
             mem_metrics = GaugeMetricFamily('switch_monitoring_memdata','Arista Switch Monitoring Memory Usage Data',labels=self._labels)
             mem_metrics.add_sample('arista_mem_total', value=self._memtotal, labels=self._labels)
             mem_metrics.add_sample('arista_mem_free', value=self._memfree, labels=self._labels)
-            logging.debug("Exporting metrics arista_mem_total=%s", self._memtotal)
-            logging.debug("Exporting metrics arista_mem_free=%s", self._memfree)
+            logging.debug(f"Exporting metrics arista_mem_total={self._memtotal}")
+            logging.debug(f"Exporting metrics arista_mem_free={self._memfree}")
             yield mem_metrics
 
             # Get the tcam usage data
@@ -120,11 +134,10 @@ class AristaMetricsCollector(object):
                     labels = {}
                     labels = ({'table': entry['table'], 'chip':entry["chip"], 'feature':entry["feature"]})
                     if entry['table'] not in self._exclude:
-                        #logging.debug("Adding: table=%s value=%s labels=%s", entry['table'], entry["usedPercent"], labels)
                         labels.update(self._labels)
                         tcam_metrics.add_sample('arista_tcam', value=entry["usedPercent"], labels=labels)
                     else:
-                        logging.debug("Excluding: table=%s value=%s labels=%s", entry['table'], entry["usedPercent"], labels)
+                        logging.debug(f"{self._target}: Excluding: table={entry['table']} value={entry['usedPercent']} labels={labels}")
 
                 yield tcam_metrics
             
@@ -144,9 +157,6 @@ class AristaMetricsCollector(object):
                             labels = {}
                             labels = ({'port': port_entry, 'stat': port_value, 'description': port_description})
                             labels.update(self._labels)
-                            #logging.debug("Adding: port=%s stat=%s value=%s labels=%s", port_entry, port_value, port_values[port_value], labels)
                             port_stats_metrics.add_sample('arista_port_stats', value=float(port_values[port_value]), labels=labels)
 
                 yield port_stats_metrics
-        else:
-            pass
