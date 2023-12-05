@@ -29,7 +29,7 @@ def falcon_app():
     addr = '0.0.0.0'
     logging.info("Starting Arista eAPI Prometheus Server on Port %s", port)
 
-    api = falcon.API()
+    api = falcon.App()
     api.add_route('/arista', metricHandler(exclude=exclude, config=config))
     api.add_route('/', welcomePage())
 
