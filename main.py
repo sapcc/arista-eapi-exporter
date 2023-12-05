@@ -1,7 +1,7 @@
 from handler import metricHandler
 from handler import welcomePage
 import argparse
-from yamlconfig import YamlConfig
+import yaml
 from wsgiref.simple_server import make_server, WSGIServer, WSGIRequestHandler
 import logging
 import sys
@@ -17,6 +17,7 @@ class _SilentHandler(WSGIRequestHandler):
 
     def log_message(self, format, *args):
         """Log nothing."""
+        pass
 
 class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
     """Thread per request HTTP server."""
@@ -68,7 +69,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # get the config
-    config = YamlConfig(args.config)
+    if args.config:
+        try:
+            with open(args.config, "r") as config_file:
+                config = yaml.load(config_file.read(), Loader=yaml.FullLoader)
+        except FileNotFoundError as err:
+            print(f"Config File not found: {err}")
+            exit(1)
 
     enable_logging()
 
