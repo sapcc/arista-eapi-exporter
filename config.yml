@@ -1,4 +1,4 @@
-listen_port: 9200
+listen_port: 9220
 username: 'test'
 password: 'mytestPW'
 protocol: 'https'
