@@ -23,3 +23,4 @@ COPY config.yml /${FOLDERNAME}/
 ENTRYPOINT [ "python3", "-u", "./main.py"]
 
 LABEL source_repository="https://github.com/sapcc/arista-eapi-exporter"
+LABEL maintainer="Bernd Kuespert <bernd.kuespert@sap.com>"
